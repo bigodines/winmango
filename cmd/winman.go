@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/bigodines/winmango/handler"
+	"github.com/facebookgo/grace/gracehttp"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -15,23 +17,26 @@ var (
 	statusPort = flag.Int("statusport", 7960, "Winman status port")
 )
 
-func Win(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
-}
-
 func main() {
 	fmt.Println("Starting service on port: %d", *port)
+	// Setup /status
 	statusApi := httprouter.New()
+	statusApi.GET("/status", handler.Status)
 
-	statusApi.GET("/status", handler.Status.Handle)
-
-	winApi := httprouter.new()
-
-	winApi.GET("/api/v1/win", handler.Win.Handle)
+	// Setup /api/v1
+	winApi := httprouter.New()
+	winApi.GET("/api/v1/win", handler.Win)
 
 	servers := make([]*http.Server, 0, 3)
-	servers = append(servers, router.ServiceApi.Server(addr(*port)))
-	servers = append(servers, router.StatusApi.Server(addr(*statusPort)))
+	servers = append(servers, &http.Server{Addr: addr(*statusPort), Handler: statusApi})
+	servers = append(servers, &http.Server{Addr: addr(*port), Handler: winApi})
 
-	log.Fatal(http.ListenAndServe(":7950", router))
+	if err := gracehttp.Serve(servers...); err != nil {
+		log.Fatal("Failed to serve:", err)
+	}
+}
+
+// addr returns the string representation of the service address for the http.Server instance.
+func addr(p int) string {
+	return ":" + strconv.Itoa(p)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func Win(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
+func Win(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	res.Header().Add("Content-Type", "application/json")
+	res.Write([]byte(`{"Status": "OK"}`))
 }
